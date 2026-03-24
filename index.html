@@ -47,14 +47,15 @@
                 <div class="upload-icon">📸</div>
                 <p>拍摄或上传采购单据照片</p>
                 <div class="upload-buttons">
-                    <button class="btn-primary" id="btn-camera">
+                    <label class="btn-primary" for="file-camera">
                         📷 拍照
-                        <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none;">
-                    </button>
-                    <button class="btn-secondary" id="btn-gallery">
+                    </label>
+                    <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none;">
+                    
+                    <label class="btn-secondary" for="file-gallery">
                         🖼️ 相册
-                        <input type="file" id="file-gallery" accept="image/*" style="display:none;">
-                    </button>
+                    </label>
+                    <input type="file" id="file-gallery" accept="image/*" style="display:none;">
                 </div>
             </div>
         </div>

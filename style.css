@@ -222,18 +222,23 @@ body {
     padding: 0 20px;
 }
 
-.upload-buttons button {
+.upload-buttons .btn-primary,
+.upload-buttons .btn-secondary {
     flex: 1;
     position: relative;
     padding: 14px 20px;
     font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    display: inline-block;
 }
 
-.upload-buttons button input {
+.upload-buttons input {
     position: absolute;
-    inset: 0;
+    width: 0;
+    height: 0;
     opacity: 0;
-    cursor: pointer;
 }
 
 .preview-box {

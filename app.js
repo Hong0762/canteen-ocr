@@ -90,17 +90,23 @@ function setupTabs() {
 
 // ============ 拍照识别 ============
 function setupScan() {
-    const fileInput = document.getElementById('file-input');
-    const btnUpload = document.getElementById('btn-upload');
+    const fileCamera = document.getElementById('file-camera');
+    const fileGallery = document.getElementById('file-gallery');
     const btnRetake = document.getElementById('btn-retake');
     const btnRecognize = document.getElementById('btn-recognize');
     const btnSave = document.getElementById('btn-save');
     const btnReset = document.getElementById('btn-reset');
     const btnAddRow = document.getElementById('btn-add-row');
 
-    btnUpload.addEventListener('click', () => fileInput.click());
+    // 拍照
+    fileCamera.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        previewImage(file);
+    });
 
-    fileInput.addEventListener('change', (e) => {
+    // 相册
+    fileGallery.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         previewImage(file);
@@ -112,7 +118,8 @@ function setupScan() {
         document.getElementById('upload-box').style.display = 'flex';
         document.getElementById('result-area').style.display = 'none';
         btnRecognize.disabled = true;
-        fileInput.value = '';
+        fileCamera.value = '';
+        fileGallery.value = '';
     });
 
     btnRecognize.addEventListener('click', async () => {
@@ -214,90 +221,118 @@ function parseOCRResult(data) {
     let date = '';
     const items = [];
 
-    // 解析日期
+    // 解析日期 - 多种格式
+    const datePatterns = [
+        /(\d{4})[年/\-.](\d{1,2})[月/\-.](\d{1,2})/,
+        /(\d{4})(\d{2})(\d{2})/,
+        /(\d{2})[年/\-.](\d{1,2})[月/\-.](\d{1,2})/
+    ];
     for (const line of lines) {
-        const dateMatch = line.match(/(\d{4})[年/\-.](\d{1,2})[月/\-.](\d{1,2})/);
-        if (dateMatch) {
-            const y = dateMatch[1];
-            const m = dateMatch[2].padStart(2, '0');
-            const d = dateMatch[3].padStart(2, '0');
-            date = `${y}-${m}-${d}`;
+        for (const pattern of datePatterns) {
+            const match = line.match(pattern);
+            if (match) {
+                if (match[1].length === 4) {
+                    date = `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`;
+                } else {
+                    date = `20${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`;
+                }
+                break;
+            }
+        }
+        if (date) break;
+    }
+
+    // 解析供应商
+    for (const line of lines) {
+        if (line.match(/供应商|供货商|卖方|采购自|来自|单位/)) {
+            supplier = line.replace(/供应商|供货商|卖方|采购自|来自|单位|[：:]/g, '').trim();
+            if (supplier) break;
+        }
+    }
+    // 如果没找到，尝试第一行非纯数字的行
+    if (!supplier) {
+        for (const line of lines) {
+            const hasLetters = /[\u4e00-\u9fa5]/.test(line);
+            const hasNumbers = /\d/.test(line);
+            if (hasLetters && !hasNumbers && line.length > 1 && line.length < 30) {
+                supplier = line.trim();
+                break;
+            }
         }
     }
 
-    // 解析供应商（通常在第一行或含"供应商"关键字的行）
-    for (const line of lines) {
-        if (line.match(/供应商|供货|卖方|提供/)) {
-            supplier = line.replace(/供应商|供货|卖方|提供|[：:]/g, '').trim();
-            break;
-        }
-    }
-    if (!supplier && lines.length > 0) {
-        // 尝试第一行作为供应商
-        const first = lines[0];
-        if (!first.match(/^\d/)) {
-            supplier = first;
-        }
-    }
-
-    // 解析明细行：匹配 数字模式（单价/金额）
-    const numPattern = /(\d+\.?\d*)/g;
+    // 解析明细行 - 更智能的解析
+    const unitPattern = /(kg|KG|千克|公斤|斤|g|克|个|只|包|袋|箱|瓶|桶|盒|只|条|根)/;
+    
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const nums = line.match(numPattern);
-        if (nums && nums.length >= 3) {
-            // 尝试解析明细行
-            // 去掉数字部分，剩余作为品名
-            let namePart = line.replace(/[\d\s.,，、kg斤公斤g克元￥＄:：×xX*＊]+/g, '').trim();
-
-            // 跳过总价行
-            if (namePart.match(/合计|总计|总价|小计|总额|合计/)) continue;
-
-            // 尝试多种解析模式
-            let item = null;
-
-            // 模式：品名 单价 单位 重量 金额
-            if (nums.length >= 4) {
-                // 尝试找到单位
-                const unitMatch = line.match(/(kg|斤|公斤|g|克|个|只|包|袋|箱|瓶|桶|盒|斤)/);
-                const unit = unitMatch ? unitMatch[1] : '斤';
-                item = {
-                    name: namePart || `食材${items.length + 1}`,
-                    price: parseFloat(nums[0]) || 0,
-                    unit: unit,
-                    weight: parseFloat(nums[1]) || 0,
-                    amount: parseFloat(nums[nums.length - 1]) || 0
-                };
-            } else if (nums.length >= 3) {
-                // 简化模式
-                const unitMatch = line.match(/(kg|斤|公斤|g|克|个|只|包|袋|箱|瓶|桶|盒|斤)/);
-                const unit = unitMatch ? unitMatch[1] : '斤';
-                item = {
-                    name: namePart || `食材${items.length + 1}`,
-                    price: parseFloat(nums[0]) || 0,
-                    unit: unit,
-                    weight: parseFloat(nums[1]) || 0,
-                    amount: parseFloat(nums[2]) || 0
-                };
-            } else if (nums.length >= 2) {
-                const unitMatch = line.match(/(kg|斤|公斤|g|克|个|只|包|袋|箱|瓶|桶|盒|斤)/);
-                const unit = unitMatch ? unitMatch[1] : '斤';
-                item = {
-                    name: namePart || `食材${items.length + 1}`,
-                    price: parseFloat(nums[0]) || 0,
-                    unit: unit,
-                    weight: '',
-                    amount: parseFloat(nums[1]) || 0
-                };
-            }
-
-            if (item && item.name && item.name.length > 0 && item.name.length < 20) {
-                items.push(item);
-            }
+        
+        // 跳过表头、总计等行
+        if (line.match(/供应商|供货|日期|品名|项目|合计|总计|总价|小计|总额|签名|电话|地址|No|no/i)) continue;
+        if (!line.match(/\d/)) continue; // 必须有数字
+        
+        // 提取所有数字
+        const nums = line.match(/\d+\.?\d*/g) || [];
+        if (nums.length < 2) continue;
+        
+        // 提取中文作为品名
+        let name = line.replace(/\d+\.?\d*/g, ' ').replace(/[×xX*＋+\-=.,，、\/|\\:：]/g, ' ').trim();
+        name = name.replace(/\s+/g, ' ').trim();
+        
+        // 过滤太短或太长的品名
+        if (name.length < 1 || name.length > 20) continue;
+        
+        // 提取单位
+        let unit = '斤';
+        const unitMatch = line.match(unitPattern);
+        if (unitMatch) {
+            const u = unitMatch[1].toLowerCase();
+            if (u.includes('kg') || u.includes('千克') || u.includes('公斤')) unit = 'kg';
+            else if (u.includes('g') && !u.includes('kg')) unit = 'g';
+            else if (u.includes('斤')) unit = '斤';
+            else if (u.includes('个')) unit = '个';
+            else unit = u;
         }
+        
+        // 智能分配数字到 金额/重量/单价
+        // 通常格式是：品名 单价 单位 重量 金额 或 品名 单价 重量 金额
+        let price = 0, weight = 0, amount = 0;
+        
+        if (nums.length === 2) {
+            // 只有两个数字：单价和金额 或 重量和金额
+            price = parseFloat(nums[0]) || 0;
+            amount = parseFloat(nums[1]) || 0;
+            weight = amount / price || 0;
+        } else if (nums.length === 3) {
+            // 三个数字：单价、重量、金额 或 品名 金额 金额
+            // 假设最后一个是金额
+            amount = parseFloat(nums[nums.length - 1]) || 0;
+            if (nums.length >= 2) {
+                price = parseFloat(nums[0]) || 0;
+                weight = parseFloat(nums[1]) || 0;
+            }
+        } else if (nums.length >= 4) {
+            // 四个及以上数字：单价、单位关键字、重量、金额
+            amount = parseFloat(nums[nums.length - 1]) || 0;
+            price = parseFloat(nums[0]) || 0;
+            weight = parseFloat(nums[nums.length - 2]) || 0;
+        }
+        
+        // 跳过总计行
+        if (name.match(/合计|总计|总价|小计|总额|¥|￥|\$/i)) continue;
+        
+        // 过滤无效数据
+        if (amount <= 0) continue;
+        
+        items.push({
+            name: name || `食材${items.length + 1}`,
+            price: price,
+            unit: unit,
+            weight: weight,
+            amount: amount
+        });
     }
 
-    // 如果自动解析效果不好，返回原始文本供手动编辑
     return {
         supplier,
         date,

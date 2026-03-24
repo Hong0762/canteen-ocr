@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>食堂采购单据识别</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- 底部导航 -->
+    <nav class="tab-bar">
+        <div class="tab active" data-tab="scan">
+            <span class="tab-icon">📷</span>
+            <span>拍照识别</span>
+        </div>
+        <div class="tab" data-tab="records">
+            <span class="tab-icon">📋</span>
+            <span>采购记录</span>
+        </div>
+        <div class="tab" data-tab="analysis">
+            <span class="tab-icon">📊</span>
+            <span>统计分析</span>
+        </div>
+        <div class="tab" data-tab="settings">
+            <span class="tab-icon">⚙️</span>
+            <span>设置</span>
+        </div>
+    </nav>
+
+    <!-- 拍照识别页 -->
+    <section id="page-scan" class="page active">
+        <header class="page-header">
+            <h1>📷 拍照识别</h1>
+            <p>拍摄或上传食堂采购单据</p>
+        </header>
+
+        <div class="scan-area">
+            <div id="preview-box" class="preview-box" style="display:none;">
+                <img id="preview-img" src="" alt="预览">
+                <button class="btn-retake" id="btn-retake">重新拍照</button>
+            </div>
+            <div id="upload-box" class="upload-box">
+                <div class="upload-icon">📸</div>
+                <p>点击拍照或上传图片</p>
+                <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none;">
+                <button class="btn-primary" id="btn-upload">选择图片</button>
+            </div>
+        </div>
+
+        <button class="btn-primary btn-large" id="btn-recognize" disabled>开始识别</button>
+
+        <!-- 识别结果 -->
+        <div id="result-area" class="result-area" style="display:none;">
+            <h2>识别结果</h2>
+            <div class="result-form">
+                <div class="form-row">
+                    <label>供应商</label>
+                    <input type="text" id="result-supplier" placeholder="供应商名称">
+                </div>
+                <div class="form-row">
+                    <label>日期</label>
+                    <input type="date" id="result-date">
+                </div>
+            </div>
+
+            <div class="items-table-wrap">
+                <table class="items-table" id="items-table">
+                    <thead>
+                        <tr>
+                            <th>食材</th>
+                            <th>单价</th>
+                            <th>单位</th>
+                            <th>重量</th>
+                            <th>金额</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-body"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4"><strong>总价</strong></td>
+                            <td id="total-amount">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <button class="btn-small" id="btn-add-row">+ 添加一行</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" id="btn-save">💾 保存记录</button>
+                <button class="btn-secondary" id="btn-reset">重新识别</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 采购记录页 -->
+    <section id="page-records" class="page">
+        <header class="page-header">
+            <h1>📋 采购记录</h1>
+            <div class="filter-bar">
+                <select id="filter-month">
+                    <option value="all">全部月份</option>
+                </select>
+                <select id="filter-supplier">
+                    <option value="all">全部供应商</option>
+                </select>
+            </div>
+        </header>
+        <div id="records-list" class="records-list">
+            <div class="empty-state">暂无采购记录</div>
+        </div>
+        <div class="btn-group bottom-actions">
+            <button class="btn-primary" id="btn-export">📥 导出Excel</button>
+            <button class="btn-danger" id="btn-clear-all">🗑️ 清空全部</button>
+        </div>
+    </section>
+
+    <!-- 统计分析页 -->
+    <section id="page-analysis" class="page">
+        <header class="page-header">
+            <h1>📊 统计分析</h1>
+            <div class="filter-bar">
+                <select id="analysis-month">
+                    <option value="all">全部</option>
+                </select>
+            </div>
+        </header>
+        <div class="analysis-content">
+            <div class="stat-cards" id="stat-cards"></div>
+            <div class="chart-box">
+                <h3>月度采购趋势</h3>
+                <div id="chart-monthly" class="chart"></div>
+            </div>
+            <div class="chart-box">
+                <h3>食材品类占比</h3>
+                <div id="chart-category" class="chart"></div>
+            </div>
+            <div class="chart-box">
+                <h3>供应商采购对比</h3>
+                <div id="chart-supplier" class="chart"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 设置页 -->
+    <section id="page-settings" class="page">
+        <header class="page-header">
+            <h1>⚙️ 设置</h1>
+        </header>
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3>百度OCR配置</h3>
+                <div class="form-row">
+                    <label>API Key</label>
+                    <input type="text" id="set-api-key" placeholder="输入API Key">
+                </div>
+                <div class="form-row">
+                    <label>Secret Key</label>
+                    <input type="password" id="set-secret-key" placeholder="输入Secret Key">
+                </div>
+                <button class="btn-primary btn-small" id="btn-save-config">保存配置</button>
+                <p class="setting-hint">🔑 Token: <span id="token-status">未配置</span></p>
+            </div>
+
+            <div class="setting-group">
+                <h3>食材分类映射</h3>
+                <p class="setting-hint">用于统计分析，自动识别食材大类</p>
+                <div id="category-map" class="category-map"></div>
+                <button class="btn-secondary btn-small" id="btn-add-category">+ 添加分类</button>
+            </div>
+
+            <div class="setting-group">
+                <h3>数据管理</h3>
+                <button class="btn-secondary" id="btn-import-data">📥 导入数据</button>
+                <button class="btn-secondary" id="btn-export-all">📤 导出全部数据</button>
+                <input type="file" id="import-input" accept=".json" style="display:none;">
+            </div>
+        </div>
+    </section>
+
+    <!-- 提示消息 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

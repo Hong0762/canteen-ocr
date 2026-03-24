@@ -39,13 +39,23 @@
         <div class="scan-area">
             <div id="preview-box" class="preview-box" style="display:none;">
                 <img id="preview-img" src="" alt="预览">
-                <button class="btn-retake" id="btn-retake">重新拍照</button>
+                <div class="preview-actions">
+                    <button class="btn-secondary" id="btn-retake">重新选择</button>
+                </div>
             </div>
             <div id="upload-box" class="upload-box">
                 <div class="upload-icon">📸</div>
-                <p>点击拍照或上传图片</p>
-                <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none;">
-                <button class="btn-primary" id="btn-upload">选择图片</button>
+                <p>拍摄或上传采购单据照片</p>
+                <div class="upload-buttons">
+                    <button class="btn-primary" id="btn-camera">
+                        📷 拍照
+                        <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none;">
+                    </button>
+                    <button class="btn-secondary" id="btn-gallery">
+                        🖼️ 相册
+                        <input type="file" id="file-gallery" accept="image/*" style="display:none;">
+                    </button>
+                </div>
             </div>
         </div>
 

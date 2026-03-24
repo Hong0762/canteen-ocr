@@ -215,6 +215,27 @@ body {
     margin-bottom: 16px;
 }
 
+.upload-buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding: 0 20px;
+}
+
+.upload-buttons button {
+    flex: 1;
+    position: relative;
+    padding: 14px 20px;
+    font-size: 16px;
+}
+
+.upload-buttons button input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
 .preview-box {
     position: relative;
 }
@@ -224,16 +245,24 @@ body {
     display: block;
 }
 
+.preview-actions {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(0,0,0,0.3);
+}
+
+.preview-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
 .btn-retake {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
+    background: rgba(255,255,255,0.9);
+    color: #333;
     border: none;
-    padding: 8px 14px;
-    border-radius: 20px;
-    font-size: 13px;
     cursor: pointer;
 }
 
